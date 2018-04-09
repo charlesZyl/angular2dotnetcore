@@ -6,7 +6,7 @@ import { Http } from '@angular/http';
         <h2> CSV Uploader </h2>
         <p>it works </p>
         {{pageTitle}}
-        <input type="file" #csvFileInput/>
+        <input type="file" #csvFileInput (change)="fileChangeEvent($event)"/>
         <input type="button" value="submit csv file" (click)="submitFile()" />
         <div>
             <input type="button" value="Test Connection" (click)="testConnection()" />
@@ -19,8 +19,9 @@ import { Http } from '@angular/http';
 export class CSVUploaderComponent {
 
     pageTitle: string = 'csv stuff'
-    @ViewChild("csvFileInput") csvFileInput: ElementRef;
     testValue: string = '';
+
+    @ViewChild("csvFileInput") csvFileInput: ElementRef;
 
     constructor(private http: Http, @Inject('BASE_URL') private baseUrl: string) { }
 
@@ -47,8 +48,43 @@ export class CSVUploaderComponent {
     }
 
     fileChangeEvent(fileInput: any) {
+        let fileReader = new FileReader();
+
+        fileReader.onload = () => {
+            const text = fileReader.result;
+            this.extractText(text);
+            console.log(text);
+        }
+
         if (fileInput.target.files && fileInput.target.files[0]) {
             const file: File = fileInput.target.files[0];
+            fileReader.readAsText(file);
+        }
+    }
+
+    extractText(text: string) {
+        const rows = text.split('\n');
+        if (rows && rows.length > 0) {
+            // Check Header if applicable
+            // E.g: FirstName,LastName,Email
+            const header = rows[0];
+            const headerProps = header.split(',');
+            if (headerProps.length != 3) {
+                console.error(`invalid csv format: make sure the first line of the csv is in this format: 'FirstName,LastName,Email'`);
+                return;
+            }
+
+            // Check if all lines/entry has firstName, last name and email
+            rows.forEach(row => {
+                if (row) {
+                    const rowProps = row.split(',');
+                    const isCorrectFormat = rowProps.length == 3;
+                    if (!isCorrectFormat) {
+                        console.error(`This '${row}' is invalid.. Please follow this format: 'FirstName,LastName,Email' e.g.: test,testLast,testEmail@someemail.com`);
+                    }
+                }
+            });
+
         }
     }
 
